@@ -23,9 +23,16 @@
 package org.jboss.as.test.integration.management.cli;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.aesh.complete.AeshCompleteOperation;
 import org.aesh.readline.completion.Completion;
 import org.aesh.readline.terminal.formatting.TerminalString;
@@ -351,51 +358,11 @@ public class CliCompletionTestCase {
     }
 
     @Test
-    public void operatorArgumentCompletion() throws Exception {
+    public void operatorAppendArgumentCompletion() throws Exception {
         CommandContext ctx = CLITestUtil.getCommandContext(TestSuiteEnvironment.getServerAddress(),
                 TestSuiteEnvironment.getServerPort(), System.in, System.out);
         ctx.connectController();
         try {
-            {
-                String cmd = "version |";
-                List<String> candidates = new ArrayList<>();
-                ctx.getDefaultCommandCompleter().complete(ctx,
-                        cmd, cmd.length(), candidates);
-                assertTrue(candidates.toString(), candidates.contains("grep"));
-                candidates = complete(ctx, cmd, null);
-                assertTrue(candidates.toString(), candidates.contains("grep"));
-            }
-
-            {
-                String cmd = "version | ";
-                List<String> candidates = new ArrayList<>();
-                ctx.getDefaultCommandCompleter().complete(ctx,
-                        cmd, cmd.length(), candidates);
-                assertTrue(candidates.toString(), candidates.contains("grep"));
-                candidates = complete(ctx, cmd, null);
-                assertTrue(candidates.toString(), candidates.contains("grep"));
-            }
-
-            {
-                String cmd = "version >";
-                List<String> candidates = new ArrayList<>();
-                ctx.getDefaultCommandCompleter().complete(ctx,
-                        cmd, cmd.length(), candidates);
-                assertFalse(candidates.toString(), candidates.isEmpty());
-                candidates = complete(ctx, cmd, null);
-                assertFalse(candidates.toString(), candidates.isEmpty());
-            }
-
-            {
-                String cmd = "version > ";
-                List<String> candidates = new ArrayList<>();
-                ctx.getDefaultCommandCompleter().complete(ctx,
-                        cmd, cmd.length(), candidates);
-                assertFalse(candidates.toString(), candidates.isEmpty());
-                candidates = complete(ctx, cmd, null);
-                assertFalse(candidates.toString(), candidates.isEmpty());
-            }
-
             {
                 String cmd = "version >>";
                 List<String> candidates = new ArrayList<>();
@@ -419,6 +386,193 @@ public class CliCompletionTestCase {
             ctx.terminateSession();
         }
     }
+
+    @Test
+    public void operatorPipeArgumentCompletion() throws Exception {
+        CommandContext ctx = CLITestUtil.getCommandContext(TestSuiteEnvironment.getServerAddress(),
+                TestSuiteEnvironment.getServerPort(), System.in, System.out);
+        ctx.connectController();
+        try {
+            {
+                String cmd = "version |";
+                List<String> candidates = new ArrayList<>();
+                ctx.getDefaultCommandCompleter().complete(ctx,
+                        cmd, cmd.length(), candidates);
+                assertTrue(candidates.toString(), candidates.contains("grep"));
+                candidates = complete(ctx, cmd, null);
+                assertTrue(candidates.toString(), candidates.contains("grep"));
+            }
+
+            {
+                String cmd = "version | ";
+                List<String> candidates = new ArrayList<>();
+                ctx.getDefaultCommandCompleter().complete(ctx,
+                        cmd, cmd.length(), candidates);
+                assertTrue(candidates.toString(), candidates.contains("grep"));
+                candidates = complete(ctx, cmd, null);
+                assertTrue(candidates.toString(), candidates.contains("grep"));
+            }
+        } finally {
+            ctx.terminateSession();
+        }
+    }
+
+    @Test
+    public void operatorRedirectArgumentCompletion() throws Exception {
+        CommandContext ctx = CLITestUtil.getCommandContext(TestSuiteEnvironment.getServerAddress(),
+                TestSuiteEnvironment.getServerPort(), System.in, System.out);
+        ctx.connectController();
+        try {
+            {
+                String cmd = "version >";
+                List<String> candidates = new ArrayList<>();
+                ctx.getDefaultCommandCompleter().complete(ctx,
+                        cmd, cmd.length(), candidates);
+                assertFalse(candidates.toString(), candidates.isEmpty());
+                candidates = complete(ctx, cmd, null);
+                assertFalse(candidates.toString(), candidates.isEmpty());
+            }
+
+            {
+                String cmd = "version > ";
+                List<String> candidates = new ArrayList<>();
+                ctx.getDefaultCommandCompleter().complete(ctx,
+                        cmd, cmd.length(), candidates);
+                assertFalse(candidates.toString(), candidates.isEmpty());
+                candidates = complete(ctx, cmd, null);
+                assertFalse(candidates.toString(), candidates.isEmpty());
+            }
+        } finally {
+            ctx.terminateSession();
+        }
+    }
+
+    @Test
+    public void testAfterPipeCommandCompletion() throws Exception {
+        CommandContext ctx = CLITestUtil.getCommandContext(TestSuiteEnvironment.getServerAddress(),
+                TestSuiteEnvironment.getServerPort(), System.in, System.out);
+        ctx.connectController();
+        try {
+            String cmd = "echo /subsystem=elytron | l";
+            List<String> candidates = new ArrayList<>();
+            ctx.getDefaultCommandCompleter().complete(ctx,
+                    cmd, cmd.length(), candidates);
+            assertFalse(candidates.toString(), candidates.isEmpty());
+            candidates = complete(ctx, cmd, null);
+            assertFalse(candidates.toString(), candidates.isEmpty());
+        } finally {
+            ctx.terminateSession();
+        }
+    }
+
+    @Test
+    public void testAfterPipeOperationCompletition() throws Exception {
+        CommandContext ctx = CLITestUtil.getCommandContext(TestSuiteEnvironment.getServerAddress(),
+                TestSuiteEnvironment.getServerPort(), System.in, System.out);
+        ctx.connectController();
+        try {
+            String cmd = "echo /subsystem=elytron | :";
+            List<String> candidates = new ArrayList<>();
+            ctx.getDefaultCommandCompleter().complete(ctx,
+                    cmd, cmd.length(), candidates);
+            assertTrue(candidates.toString(), candidates.isEmpty());
+            candidates = complete(ctx, cmd, null);
+            assertTrue(candidates.toString(), candidates.isEmpty());
+        } finally {
+            ctx.terminateSession();
+        }
+    }
+
+    @Test
+    public void testAppendCustomFileRelativeDirCompletition() throws Exception {
+        CommandContext ctx = CLITestUtil.getCommandContext(TestSuiteEnvironment.getServerAddress(),
+                TestSuiteEnvironment.getServerPort(), System.in, System.out);
+        ctx.connectController();
+        try {
+            String fileName = "testCommandCompletitionFile";
+            ctx.handle("version >" + fileName);
+            {
+                String cmd = "version >>";
+                List<String> candidates = new ArrayList<>();
+                ctx.getDefaultCommandCompleter().complete(ctx,
+                        cmd, cmd.length(), candidates);
+                assertTrue(candidates.toString(), candidates.contains(fileName));
+                candidates = complete(ctx, cmd, null);
+                assertTrue(candidates.toString(), candidates.contains(fileName));
+            }
+
+            {
+                String cmd = "version >> ";
+                List<String> candidates = new ArrayList<>();
+                ctx.getDefaultCommandCompleter().complete(ctx,
+                        cmd, cmd.length(), candidates);
+                assertTrue(candidates.toString(), candidates.contains(fileName));
+                candidates = complete(ctx, cmd, null);
+                assertTrue(candidates.toString(), candidates.contains(fileName));
+            }
+            Path filePath = Paths.get(fileName);
+            Files.delete(filePath);
+
+        } finally {
+            ctx.terminateSession();
+        }
+    }
+
+    @Test
+    public void testAppendCustomFileAbsoluteDirCompletition() throws Exception {
+        CommandContext ctx = CLITestUtil.getCommandContext(TestSuiteEnvironment.getServerAddress(),
+                TestSuiteEnvironment.getServerPort(), System.in, System.out);
+        ctx.connectController();
+        String fileName = "testCommandCompletitionFile";
+        try {
+            File f = new File(fileName);
+            ctx.handle("version >" + fileName);
+            Path filePath = Paths.get(f.getAbsolutePath());
+            List<String> paths = new ArrayList<>();
+            for (Path path: filePath) {
+                paths.add(path.toFile().getName());
+            }
+
+            String cmd = "version >>";
+            String testPath = "";
+            List<String> candidates = new ArrayList<>();
+            for (int i = 0; i < paths.size(); i++) {
+                String p = paths.get(i);
+                testPath += "/" + p;
+                candidates = complete(ctx, cmd + testPath, null);
+                if (i + 1 < paths.size()) {
+                    assertTrue(candidates.toString(), candidates.contains(p + "/"));
+                } else {
+                    assertTrue(candidates.toString(), candidates.contains(p));
+                }
+            }
+            Files.delete(filePath);
+        } finally {
+            ctx.terminateSession();
+        }
+    }
+
+    @Test
+    public void testGrepParametersCompletition() throws Exception {
+        CommandContext ctx = CLITestUtil.getCommandContext(TestSuiteEnvironment.getServerAddress(),
+                TestSuiteEnvironment.getServerPort(), System.in, System.out);
+        ctx.connectController();
+        Set<String> expectedParameters = new HashSet<>(Arrays.asList("--help", "--ignore-case"));
+        try {
+            String cmd = "grep --";
+            List<String> candidates = new ArrayList<>();
+            ctx.getDefaultCommandCompleter().complete(ctx,
+                    cmd, cmd.length(), candidates);
+            assertEquals(expectedParameters, candidates.stream().map(String::toString).collect(Collectors.toSet()));
+            candidates = complete(ctx, cmd, null);
+            assertEquals(expectedParameters, candidates.stream().map(String::toString).collect(Collectors.toSet()));
+        } finally {
+            ctx.terminateSession();
+        }
+    }
+
+
+
 
     private String escapePath(String filePath) {
         if (Util.isWindows()) {
