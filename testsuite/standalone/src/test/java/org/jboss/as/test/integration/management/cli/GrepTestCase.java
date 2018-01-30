@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -44,7 +43,7 @@ public class GrepTestCase {
         testCommand("grep --help", "SYNOPSIS", false);
     }
     @Test
-    @Ignore("JIRA TBD")
+    @Ignore("Uncomment when https://issues.jboss.org/browse/WFCORE-3556 is fixed")
     public void testGrepBasicRegexp() throws Exception {
         testCommand("echo nofork | grep '^no\\(fork\\|group\\)'", "nofork", true);
     }
@@ -66,21 +65,21 @@ public class GrepTestCase {
 
     @Test
     public void testGrepWithInputFromFile() throws Exception {
-        cliOut.reset();
-        final CommandContext ctx = CLITestUtil.getCommandContext(cliOut);
-        String fileName = "testGrepWithInputFile";
-        try {
-            ctx.handle("version >" + fileName);
 
-            ctx.handle("grep java.version " + fileName);
+        ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
+        final CommandContext ctx = CLITestUtil.getCommandContext(cliOut);
+        Path tempFile = Files.createTempFile("tempFile", ".tmp");
+        String tempFileStringPath = tempFile.toString();
+        try {
+            ctx.handle("version >" + tempFileStringPath);
+
+            ctx.handle("grep java.version " + tempFileStringPath);
             String output = cliOut.toString(StandardCharsets.UTF_8.name());
             assertTrue("Wrong results of the grep command", output.contains("java.version"));
-
-            Path filePath = Paths.get(fileName);
-            Files.delete(filePath);
         } finally {
             ctx.terminateSession();
-            cliOut.reset();
+            cliOut.close();
+            Files.delete(tempFile);
         }
     }
 
@@ -95,7 +94,7 @@ public class GrepTestCase {
         testCommand("grep \\.?\\(\\/1\\)", "invalid pattern", false);
     }
 
-        @Test(expected = OperationFormatException.class)
+    @Test(expected = OperationFormatException.class)
     public void testGrepWithInvalidParameter() throws Exception {
         testCommand("grep --", "'' is not a valid parameter name", false);
     }

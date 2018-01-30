@@ -17,9 +17,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.FileVisitResult;
 
 /**
  * @author kanovotn@redhat.com
@@ -96,7 +93,8 @@ public class AppendTestCase {
                     checkFileContains(Paths.get(tempFileStringPath), "Release: "));
         } finally {
             ctx.terminateSession();
-            cleanUpTestDir(tempDir);
+            tempFile.toFile().delete();
+            tempDir.toFile().delete();
         }
     }
 
@@ -120,7 +118,8 @@ public class AppendTestCase {
                     checkFileContains(Paths.get(tempFileStringPath), "Release: "));
         } finally {
             ctx.terminateSession();
-            cleanUpTestDir(tempDir);
+            tempFile.toFile().delete();
+            tempDir.toFile().delete();
         }
     }
 
@@ -143,7 +142,7 @@ public class AppendTestCase {
     }
 
     @Test
-    @Ignore("JIRA TBD")
+    @Ignore("Uncomment when https://issues.jboss.org/browse/WFCORE-3554 is fixed")
     public void testAppendFileNamePipe() throws Exception {
         // '|' character is not supported in filename in windows
         if (!Util.isWindows()) {
@@ -177,26 +176,6 @@ public class AppendTestCase {
         } finally {
             ctx.terminateSession();
             Files.delete(tempFile);
-        }
-    }
-
-    private void cleanUpTestDir(Path path) {
-        try {
-            Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file);
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.delete(dir);
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch(IOException e){
-            Assert.fail("Failed to clean up test file.");
         }
     }
 

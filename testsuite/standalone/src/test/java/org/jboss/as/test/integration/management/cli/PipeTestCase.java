@@ -1,4 +1,4 @@
-package org.jboss.as.test.integration.management.cli.modules;
+package org.jboss.as.test.integration.management.cli;
 
 import org.hamcrest.CoreMatchers;
 import org.jboss.as.cli.CommandContext;
@@ -70,7 +70,7 @@ public class PipeTestCase {
     }
 
     @Test
-    @Ignore("JIRA TBD")
+    @Ignore("Uncomment when  https://issues.jboss.org/browse/WFCORE-3555 is fixed")
     public void testPipeWithUnsupportedCommand() throws Exception {
         testCommand("version | echo test", "test", true);
     }

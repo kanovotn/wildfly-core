@@ -44,7 +44,7 @@ public class FilePermissionTestCase {
     }
 
     @Test
-    @Ignore("JIRA TBD")
+    @Ignore("Uncomment when https://issues.jboss.org/browse/WFCORE-3553 is fixed")
     public void testWriteFileIntoDirWithoutWritePermission() throws Exception {
 
         // This is unix test only
